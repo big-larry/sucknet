@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewWorker(ctx context.Context, limit int, listener net.Listener, handler func(net.Conn) error, errhandler func(c net.Conn, err error), gettimeout func(n int) time.Duration) error {
+func NewWorker(ctx context.Context, limit int, listener net.Listener, handler func(net.Conn) (bool, error), errhandler func(c net.Conn, err error), gettimeout func(n int) time.Duration) error {
 	pool1 := make(chan net.Conn)
 	pool2 := make(chan net.Conn)
 	pool_limiter := make(chan struct{}, limit)
@@ -20,11 +20,14 @@ func NewWorker(ctx context.Context, limit int, listener net.Listener, handler fu
 		if c == nil {
 			return
 		}
-		if err = handler(c); err != nil {
+		var keep bool
+		if keep, err = handler(c); err != nil {
 			errhandler(c, err)
 		}
-		if err = c.Close(); err != nil {
-			errhandler(c, err)
+		if !keep {
+			if err = c.Close(); err != nil {
+				errhandler(c, err)
+			}
 		}
 	}
 
