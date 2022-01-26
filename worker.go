@@ -21,6 +21,7 @@ func NewWorker(ctx context.Context, limit int, listener net.Listener, handler fu
 			return
 		}
 		var keep bool
+	start:
 		if keep, err = handler(c); err != nil {
 			errhandler(c, err)
 		}
@@ -28,6 +29,11 @@ func NewWorker(ctx context.Context, limit int, listener net.Listener, handler fu
 			if err = c.Close(); err != nil {
 				errhandler(c, err)
 			}
+		} else {
+			if err != nil {
+				return
+			}
+			goto start
 		}
 	}
 
